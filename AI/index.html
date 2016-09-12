@@ -66,33 +66,29 @@
         
     </head>
     <body>
-       <!-- <div class="test">
-            <p id="key"></p>
-        </div>-->
         <div class="searchSettings">
             <h3 id="settingsHeader">Search Settings:</h3>
                 <h4 id="gridSizeHeader">Grid Size:</h4>
                     <div class="formGridSelect">
-                        <input type="radio" value="44" name="4x4">Instance#1: 4x4
+                        <input type="radio" value="16" name="size" checked="checked">Instance#1: 4x4
                         <br>
-                        <input type="radio" value="56" name="5x6">Instance#2: 5x6
+                        <input type="radio" value="30" name="size">Instance#2: 5x6
                     </div> 
                 <h4 id="searchAlg">Search Alg:</h4>
                     <div class="formAlgSelect">
-                            <input type="radio" value="44" name="4x4">Iterative Deepening Tree Search (IDS)
+                            <input type="radio" value="IDS" name="searchS"/>Iterative Deepening Tree Search (IDS)
                             <br>
-                            <input type="radio" value="56" name="5x6">Depth First Graph (DFS)
+                            <input type="radio" value="DFS" name="searchS" checked="checked"/>Depth First Graph (DFS)
                             <br>
-                            <input type="radio" value="56" name="5x6">A*
+                            <input type="radio" value="A" name="searchS"/>A*
                         </div> 
             <button id="runSim" style="font-size: 11pt;margin:5px;">Run Simulation</button>
         </div>
         
         <div id="results">
             <h3 id="resultsHeader">The results will be displayed below:</h3>
-            <table>
-
-            </table>
+            <p id="resultOutput">
+            </p>
         </div>
         
     </body>

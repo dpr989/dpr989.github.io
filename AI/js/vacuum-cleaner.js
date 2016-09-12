@@ -1,5 +1,6 @@
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
+
 var room4b4 = [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0];
 var room5b6 = [];
 
@@ -12,6 +13,30 @@ function Vacuum(room) {
     
 }*/
 
+$(document).ready(function () {
+    $("#runSim").click(function () {
+        if ($("input:checked").length !== 2) {
+            $('#resultOutput').val("Error be sure to select 2 options");
+            return;
+        }
+    });
+});
+
+function search() {
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+/****BELOW HERE LIES FUN****/
 $(document).ready(function () {
     //Check if key down
     $(document).keydown(function (key) {
