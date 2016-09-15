@@ -19,6 +19,10 @@ function assert(assertion){
 function Coord2D (x,y) {
     this.x = x;
     this.y = y;
+    
+    this.toString = function (){
+        return "("+(this.x)+","+(this.y)+")";
+    };
 }
 
 var ROOMCONFIG = function (){
@@ -32,13 +36,14 @@ var ROOMCONFIG = function (){
 //Input: Takes coordinate pair (space delimited ex "2 3" is (2 3)) 
 //Output: Returns a 
 function convert1DTo2D (coord1D) {
-    var x = 0, y = coord1D;
+    var x = 0, y = coord1D % ROOMCONFIG.width +1;
 
     if(coord1D > 6){
         x = Math.floor(coord1D/ROOMCONFIG.width);
     }else{
         x = 1;
     }
+    
     return new Coord2D(x,y);
 }
 
@@ -49,32 +54,38 @@ function convert2DTo1D (coord2D) {
     return (ROOMCONFIG.width*((coord2D.x)-1)) + coord2D.y;
 }
 
+function Vacuum(room) {
+    this.inRoom = room;
+    this.coords = convert1DTo2D(room);
+    var score = 0;
+}
+
+
 var room4b4 = {
-                    name : "4x4",
-                    clean : [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],  //1=clean, 0=dirty
-                    visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //1=visisted, 0=has not visited 
-                    width : 4,
-                    height : 4,
-                    number : function(){return this.clean.length;},
-                    start2D : new Coord2D(3,2),
-                    start1D : function(){return convert2DTo1D(this.start2D);}
+                name : "4x4",
+                clean : [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],  //1=clean, 0=dirty
+                visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //1=visisted, 0=has not visited 
+                dirty : function(){return this.clean.filter(function(el){return el === 1;}).length;},
+                width : 4,
+                height : 4,
+                number : function(){return this.clean.length;},
+                start2D : new Coord2D(3,2),
+                start1D : function(){return convert2DTo1D(this.start2D);}
               }; 
 
 var room5b6 = {
-                    name : "5x6",
-                    clean : [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1],
-                    visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    width : 5,
-                    height : 6,
-                    number : function(){return this.clean.length;},
-                    start2D : new Coord2D(3,2),
-                    start1D : function(){return convert2DTo1D(this.start2D);}
+                name : "5x6",
+                clean : [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1],
+                visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                dirty : function(){return this.clean.filter(function(el){return el === 1;}).length;},
+                width : 5,
+                height : 6,
+                start2D : new Coord2D(3,2),
+                start1D : function(){return convert2DTo1D(this.start2D);}
              };
 
 var options = []; //Array for storing user options gathered from DOM
-var searchType; 
-
-
+var searchType = 1; 
 
 //Input: direction - string rep. of attempted direction to move 
 
@@ -88,24 +99,26 @@ function getRoom(direction, roomNum){
             newRoom = (roomNum + ROOMCONFIG.width);
             break;
         case "LEFT":
-            newRoom = (roomNum - 1);
+            if(roomNum % 4 === 0){
+                newRoom = -1;
+            }
+            else{                       
+                newRoom = (roomNum - 1);
+            }
             break;
         case "RIGHT":
-            newRoom = (roomNum + 1);
+            if((roomNum + 1) % 4 === 0){
+                newRoom = -1;
+            }
+            else{                       
+                newRoom = (roomNum + 1);
+            }
             break;
     }
-    console.log(ROOMCONFIG.numberOfRooms+" "+newRoom);
-    if(newRoom >= 0 && newRoom < ROOMCONFIG.numberOfRooms){return newRoom;} 
+    if(newRoom >= 0 && newRoom < ROOMCONFIG.numberOfRooms){
+        return newRoom;
+    } 
     return -1;
-}
-
-function buildGraph(numRooms, height, width){
-    
-}
-
-//Object representing a room (node)
-function Room (clean, visited, coord1D){
-    
 }
 
 function roomVisited(rooms, room){
@@ -121,14 +134,32 @@ function setVisited(rooms, room){
     rooms.visited[room] = 1;
 }
 
-function getNeighbors(room){
-    //Check if UP, DOWN, LEFT, RIGHT valid if so add to stack
-    var nstack, i,D = ["UP","DOWN","RIGHT","LEFT"];
-    for(i=0; i<4; i++){
-        
+function checkForDirt(rooms, room){
+    //Clean if you can
+    if(rooms.clean[room] === 1) {
+        rooms.clean[room] = 0;
+        //TEST
+        console.log("Room#:"+(room+1)+" "+convert1DTo2D(room).toString()+" has been cleaned!!!");
     }
-    
-    
+}
+
+function getNeighbors(rooms, room){
+    if(room > 15 || room < 0){return -1;}
+    //Check if UP, DOWN, LEFT, RIGHT valid if so add to stack
+    var nstack = [], i, r, D = ["UP","DOWN","RIGHT","LEFT"];
+    //TEST
+    //console.log("Poss. moves from room#: "+room);
+    for(i=0; i<D.length; i++){
+        r = getRoom(D[i],room);
+        //TEST
+        //sconsole.log("Neighbor #:"+i +" neighbors");
+        if(r>=0 && rooms.visited[r] === 0){ //Check if room is valid & visited=0
+            //TEST
+            //console.log("Room#: "+r+" is a possible move...");
+            nstack.push(r); 
+        }
+    }
+    return nstack;
 }
 
 function dfs(rooms, vacuum) {
@@ -145,30 +176,49 @@ function dfs(rooms, vacuum) {
             end if
          end while
       END DFS()*/
-    var stack = [], neighbors = [], roomNum, room;
-    
+    var stack = [], neighbors = [], visit = [], roomNum, room;
+    //TEST
+    console.log("In DFS:");
     //Itterate through each room setting it to not-visited (0)
-    for(roomNum=0; roomNum < rooms.number; roomNum++){
-        rooms.visited[roomNum] = 0;
-    }
+    for(roomNum=0; roomNum < rooms.visited.length; roomNum++){rooms.visited[roomNum] = 0;}
     
     //Push starting room onto stack
-    stack.push(rooms.start1D);
-    
+    stack.push(rooms.start1D());
+    //TEST:
+    console.log("Start in room#: "+rooms.start1D()+" "+rooms.start2D);
+    //console.log("Init stack.length="+stack.length);
     //Itterate until "stack" is empty
-    while(stack.length !== 0){ //NOTE: ===, !==, <==, >== are type safe comparitors (checks type and value )
+    while(stack.length !== 0){ //NOTE: ===, !==, <==, >== (checks type and value )
         room = stack.pop();
+        //TEST
+        //console.log(room + "-> ");
         //Check if the room has been visited
         if(roomVisited(rooms, room) === false){
+            
             //The room has NOT been visited...
             setVisited(rooms, room); //Set to visited
-            neighbors = getNeighbors(rooms, room);
+            //TEST
+            console.log("Room#: "+room+" "+convert1DTo2D(room).toString()+" has been visited");
             
+            //Check for dirt, updates room
+            checkForDirt(rooms, room);
+            
+            //Returns an array of room's neighbors
+            neighbors = getNeighbors(rooms, room);
+            //TEST
+            //console.log("Room#:"+room+" has the following unvisited neighbors:"+neighbors);
+            //Sort neighbors by room#
+            //neighbors.sort();
+            //TEST
+            console.log("Neighbors of room "+room+": "+neighbors);
+            
+            //Add the new elements to the array
+            stack = neighbors.concat(stack);
+            //TEST
+            console.log("")
         }
     }
-    
-
-    
+    console.log("END");
 }
 
 function ids() {
@@ -180,13 +230,6 @@ function aStar(nRooms) {
 }
 
 //room - is 1D location of Vaccum
-function Vacuum(room) {
-    this.inRoom = room;
-    this.coords = convert1DTo2D(room);
-    var score = 0;
-    //this.Move = function (direction) {
-    //};
-}
 
 //Main function
 $(document).ready(function () {
@@ -211,24 +254,32 @@ $(document).ready(function () {
         //Setup current room config
         ROOMCONFIG.width = rmConfig.width;
         ROOMCONFIG.height = rmConfig.height;
+        ROOMCONFIG.numberOfRooms = rmConfig.number();
         
         /*TEST:console.log(rmConfig.name + " was choosen");*/
         /*TEST: console.log(ROOMCONFIG.width);*/
         /*TEST: console.log(ROOMCONFIG.height);*/
         //TEST: vallidMove(direction, room)
+        
         //TEST: 4x4 moves
-        console.log("UP from 0 is room#:"+getRoom("UP", 0));
+        //getRoom(direction, roomnum)
+        /*console.log("UP from 0 is room#:"+getRoom("UP", 0));
         console.log("UP from 3 is room#:"+getRoom("UP", 3));
         console.log("UP from 12 is room#:"+getRoom("UP", 12));
-        console.log("UP from 15 is room#:"+getRoom("UP", 15));
+        console.log("UP from 15 is room#:"+getRoom("UP", 15));*/
         
+        //getNeighbors(rooms, room)
+        /*console.log("Neighbors of r#: "+0+" "+getNeighbors(rmConfig, 0));
+        console.log("Neighbors of r#: "+5+" "+getNeighbors(rmConfig, 5));
+        console.log("Neighbors of r#: "+0+" "+getNeighbors(rmConfig, 15));
+        console.log("Neighbors of r#: "+0+" "+getNeighbors(rmConfig, 13));*/
         
+        //console.log(getNeighbors(room4b4, 12));
         //Place robot in room
         vacuum = new Vacuum(rmConfig.start1D);
-        //test(s)
-        getNeighbors(1);
+        console.log(rmConfig.dirty());
         //Switch statement choosing which alg to run
-        /*switch (options[searchType]) {
+        switch (options[searchType]) {
             case "DFS":
                 dfs(rmConfig, vacuum);
                 break;
@@ -238,43 +289,6 @@ $(document).ready(function () {
             case "A":
                 aStar(rmConfig, vacuum);
                 break;
-        }*/
-    });
-});
-
-/****BELOW HERE LIES FUN****/
-/*$(document).ready(function () {
-    //Check if key down
-    $(document).keydown(function (key) {
-       
-        Code for moving divs with arrow keys
-        //Check which key is pressed down
-        var keyname;
-        switch (key.which) {
-        case 37:
-            keyname = "left-arrow";
-            $('div').stop(true).animate({left: "-=10px"}, "fast");
-            break;
-        case 38:
-            keyname = "up-arrow";
-            $('div').stop(true).animate({top: "-=10px"}, "fast");
-            break;
-        case 39:
-            keyname = "right-arrow";
-            $('div').stop(true).animate({left: "+=10px"}, "fast");
-            break;
-        case 40:
-            keyname = "down-arrow";
-            $('div').stop(true).animate({top: "+=10px"}, "fast");
-            break;
         }
-        $("#key").text(keyname);
-        
     });
 });
-
-$(document).ready(function () {
-    $("button").click(function () {
-        $("div").animate({left: '300px'}, "fast");
-    });
-});*/
