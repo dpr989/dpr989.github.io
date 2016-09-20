@@ -21,7 +21,7 @@ function Coord2D (x,y) {
     this.y = y;
     
     this.toString = function (){
-        return "("+(this.x)+","+(this.y)+")";
+        return "("+(this.x+1)+","+(this.y+1)+")";
     };
 }
 
@@ -36,7 +36,7 @@ var ROOMCONFIG = function (){
 //Input: Takes coordinate pair (space delimited ex "2 3" is (2 3)) 
 //Output: Returns a 
 function convert1DTo2D (coord1D) {
-    var x = 0, y = coord1D % ROOMCONFIG.width +1;
+    var x = 0, y = coord1D % ROOMCONFIG.width;
 
     if(coord1D > 6){
         x = Math.floor(coord1D/ROOMCONFIG.width);
@@ -51,7 +51,7 @@ function convert1DTo2D (coord1D) {
 //Input: Takes single number which represents pos in 1D
 //Output: A string containing cooresponding coordinate pair (ex 2 3)
 function convert2DTo1D (coord2D) {
-    return (ROOMCONFIG.width*((coord2D.x)-1)) + coord2D.y;
+    return (ROOMCONFIG.width*((coord2D.x))) + coord2D.y;
 }
 
 function Vacuum(room) {
@@ -65,11 +65,12 @@ var room4b4 = {
                 name : "4x4",
                 clean : [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],  //1=clean, 0=dirty
                 visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //1=visisted, 0=has not visited 
+                closed : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 dirty : function(){return this.clean.filter(function(el){return el === 1;}).length;},
                 width : 4,
                 height : 4,
                 number : function(){return this.clean.length;},
-                start2D : new Coord2D(3,2),
+                start2D : new Coord2D(2,1),
                 start1D : function(){return convert2DTo1D(this.start2D);}
               }; 
 
@@ -77,10 +78,11 @@ var room5b6 = {
                 name : "5x6",
                 clean : [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1],
                 visited : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                closed : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 dirty : function(){return this.clean.filter(function(el){return el === 1;}).length;},
                 width : 5,
                 height : 6,
-                start2D : new Coord2D(3,2),
+                start2D : new Coord2D(2,1),
                 start1D : function(){return convert2DTo1D(this.start2D);}
              };
 
@@ -138,8 +140,9 @@ function checkForDirt(rooms, room){
     //Clean if you can
     if(rooms.clean[room] === 1) {
         rooms.clean[room] = 0;
+        rooms.dirty--;
         //TEST
-        console.log("Room#:"+(room+1)+" "+convert1DTo2D(room).toString()+" has been cleaned!!!");
+        console.log("Room#: "+room+" "+convert1DTo2D(room).toString()+" has been cleaned!!!");
     }
 }
 
@@ -162,6 +165,10 @@ function getNeighbors(rooms, room){
     return nstack;
 }
 
+function largeToSmall(a, b){
+    return parseInt(a,10) < parseInt(b,10);
+}
+
 function dfs(rooms, vacuum) {
     /* DFS(G,v)   ( v is the vertex where the search starts )
          xStack S := {};   ( start with an empty stack )
@@ -176,46 +183,52 @@ function dfs(rooms, vacuum) {
             end if
          end while
       END DFS()*/
-    var stack = [], neighbors = [], visit = [], roomNum, room;
+    var stack = [], neighbors = [], visitHist = [], roomNum, room,count = 0;
     //TEST
-    console.log("In DFS:");
+    //console.log("In DFS:");
     //Itterate through each room setting it to not-visited (0)
     for(roomNum=0; roomNum < rooms.visited.length; roomNum++){rooms.visited[roomNum] = 0;}
     
     //Push starting room onto stack
     stack.push(rooms.start1D());
     //TEST:
-    console.log("Start in room#: "+rooms.start1D()+" "+rooms.start2D);
-    //console.log("Init stack.length="+stack.length);
-    //Itterate until "stack" is empty
-    while(stack.length !== 0){ //NOTE: ===, !==, <==, >== (checks type and value )
+    //console.log("Start in room#: "+rooms.start1D()+" "+rooms.start2D);
+
+    while(stack.length !== 0){
+        //Check if backtracking is neccessary
         room = stack.pop();
+        //TEST
+        console.log("Expanded "+convert1DTo2D(room).toString());
+        
         //TEST
         //console.log(room + "-> ");
         //Check if the room has been visited
-        if(roomVisited(rooms, room) === false){
-            
-            //The room has NOT been visited...
-            setVisited(rooms, room); //Set to visited
-            //TEST
-            console.log("Room#: "+room+" "+convert1DTo2D(room).toString()+" has been visited");
-            
+        if(rooms.closed[room] === 0){
+            visitHist.push(room);
+           
+            setVisited(rooms, room);
             //Check for dirt, updates room
             checkForDirt(rooms, room);
             
             //Returns an array of room's neighbors
-            neighbors = getNeighbors(rooms, room);
+            neighbors=[];
+            neighbors = getNeighbors(rooms, room).sort(largeToSmall);
             //TEST
             //console.log("Room#:"+room+" has the following unvisited neighbors:"+neighbors);
-            //Sort neighbors by room#
-            //neighbors.sort();
+            
             //TEST
-            console.log("Neighbors of room "+room+": "+neighbors);
+            //console.log("Neighbors of room "+room+": "+neighbors);
             
             //Add the new elements to the array
-            stack = neighbors.concat(stack);
+            stack = stack.concat(neighbors);
             //TEST
-            console.log("")
+            //console.log("Stack = "+ stack);
+            //Reached a dead end, need to backtrack, do so by pushing hist on stack
+            if(neighbors.length === 0){
+                stack.push(visitHist.pop());
+                rooms.closed[room] = 1;
+                console.log("Room#: "+room+" "+convert1DTo2D(room).toString()+" has been visited");
+            }
         }
     }
     console.log("END");
